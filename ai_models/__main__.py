@@ -30,8 +30,8 @@ def main(*args):
     logger.info("Loading the dataset from '%s'", args.dataset)
     data, labels = dataset.load(args.dataset,
                                 "engagement",
-                                width=500,
-                                location="after")
+                                width=args.width,
+                                location=args.location)
     logger.info("Loaded a dataset of size %s", data.shape)
 
     if os.getenv('UXSAD_ENV') == 'test':
@@ -50,7 +50,7 @@ def main(*args):
     logger.info("Starting exhaustive feature selection")
     res['exhaustive_feature_selection'], duration = model.feature_selection(
         (train_data, test_data), (train_labels, test_labels),
-        mlpack.linear_svm,
+        model.AVAILABLE_MODELS[args.model],
         show_progress=args.verbose,
         random=args.random,
         n_jobs=args.jobs)

@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+from ai_models.model import AVAILABLE_MODELS
 
 
 def cli(args):
@@ -32,5 +33,20 @@ def cli(args):
                         help="Number of parallel jobs",
                         type=int,
                         default=1)
+
+    parser.add_argument('width',
+                        help="The width",
+                        type=int)
+    parser.add_argument('location',
+                        help="The location",
+                        type=str,
+                        choices=["before", "after", "full"])
+
+    parser.add_argument('--model',
+                        '-m',
+                        help="The model",
+                        type=str,
+                        default=list(AVAILABLE_MODELS.keys())[0],
+                        choices=AVAILABLE_MODELS.keys())
 
     return parser.parse_args()
