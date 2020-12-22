@@ -32,13 +32,11 @@ def forward_feature_selection(data,
 
     feature_set = []
     res = []
-    g = functools.partial(execute_model,
-                          labels=labels,
-                          algorithm=algorithm)
+    g = functools.partial(execute_model, labels=labels, algorithm=algorithm)
     #  if n_jobs == 1:
-    #  logger.info("Starting in serial mode")
+    #      logger.info("Starting in serial mode")
     #  else:
-    #  logger.info("Starting %d parallel jobs", n_jobs)
+    #      logger.info("Starting %d parallel jobs", n_jobs)
     start_time = time.time()
     try:
         r = tqdm.trange(data[0].shape[1], desc="Cycles",
@@ -53,10 +51,10 @@ def forward_feature_selection(data,
                                         len(feature_set),
                                         leave=False)
             #  if n_jobs == 1:
-            #  results = map(g, columns_set)
+            #      results = map(g, columns_set)
             #  else:
-            #  with mp.Pool(n_jobs, initializer=initializer) as pool:
-            #  results = pool.map(g, columns_set, chunksize=(300))
+            #      with mp.Pool(n_jobs, initializer=initializer) as pool:
+            #          results = pool.map(g, columns_set, chunksize=(300))
             results = map(g, columns_set)
             best = max(results, key=lambda x: x[1])
             model, acc, training_time, cols = best
@@ -96,16 +94,16 @@ def exhaustive_feature_selection(data,
 
     logger.info("Starting %d parallel jobs", n_jobs)
     start_time = time.time()
+    n_sets = 2 ** data[0].shape[1]
     with mp.Pool(n_jobs, initializer=initializer) as pool:
         g = functools.partial(execute_model,
                               labels=labels,
                               algorithm=algorithm)
         results = pool.imap_unordered(g, columns_set, chunksize=(300))
-
         if show_progress:
             results = tqdm.tqdm(results,
                                 desc="Features",
-                                total=(2**data[0].shape[1]),
+                                total=n_sets,
                                 leave=False)
         try:
             for model, acc, training_time, cols in results:

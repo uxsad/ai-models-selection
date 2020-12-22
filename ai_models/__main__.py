@@ -36,7 +36,7 @@ def main(*args):
 
     if os.getenv('UXSAD_ENV') == 'test':
         logger.warning("Started in test mode")
-        data = data.head()
+        data = data.iloc[:,0:3]
 
     logger.info(
         "Splitting the dataset into train and test set (test ratio: %.2f%%)",
