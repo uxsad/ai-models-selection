@@ -29,7 +29,7 @@ def main(*args):
 
     logger.info("Loading the dataset from '%s'", args.dataset)
     data, labels = dataset.load(args.dataset,
-                                "engagement",
+                                args.emotion,
                                 width=args.width,
                                 location=args.location)
     logger.info("Loaded a dataset of size %s", data.shape)
@@ -47,11 +47,11 @@ def main(*args):
                 test_data.shape)
 
     res = {}
-    logger.info("Starting exhaustive feature selection")
-    res['exhaustive_feature_selection'], duration = model.feature_selection(
+    logger.info("Starting forward feature selection")
+    res['feature_selection'], duration = model.forward_feature_selection(
         (train_data, test_data), (train_labels, test_labels),
         model.AVAILABLE_MODELS[args.model],
-        show_progress=args.verbose,
+        show_progress=args.progress,
         random=args.random,
         n_jobs=args.jobs)
     logger.info("Exhaustive feature selection completed. Took %.2f seconds",

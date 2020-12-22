@@ -1,6 +1,7 @@
 import argparse
 import pathlib
 from ai_models.model import AVAILABLE_MODELS
+from ai_models.dataset import KEYS_TO_PREDICT
 
 
 def cli(args):
@@ -28,12 +29,21 @@ def cli(args):
                         help="Run verbosely",
                         action='store_true')
 
+    parser.add_argument('--progress',
+                        '-P',
+                        help="Show progress",
+                        action='store_true')
+
     parser.add_argument('--jobs',
                         '-j',
                         help="Number of parallel jobs",
                         type=int,
                         default=1)
 
+    parser.add_argument('emotion',
+                        help="The emotion",
+                        type=str,
+                        choices=[e.split('.')[2] for e in KEYS_TO_PREDICT])
     parser.add_argument('width',
                         help="The width",
                         type=int)
