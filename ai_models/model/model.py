@@ -18,13 +18,16 @@ logger = logging.getLogger(__name__)
 AVAILABLE_MODELS = {
     "forest": mlpack.random_forest,
     "svm": mlpack.linear_svm,
+    "adaboost":mlpack.adaboost,
+    "tree": mlpack.decision_tree,
+    "perceptron": mlpack.perceptron,
 }
 
 
-def execute_model(data, labels, algorithm, random=0):
+def execute_model(data, labels, algorithm):
     start_time = time.time()
 
-    output = algorithm(labels=labels[0], training=data[0], seed=random)
+    output = algorithm(labels=labels[0], training=data[0])
     logger.debug("Completed training")
 
     end_time = time.time()

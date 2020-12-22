@@ -21,7 +21,6 @@ def forward_feature_selection(data,
                               labels,
                               algorithm,
                               n_jobs=1,
-                              random=0,
                               show_progress=False):
     def initializer():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -35,8 +34,7 @@ def forward_feature_selection(data,
     res = []
     g = functools.partial(execute_model,
                           labels=labels,
-                          algorithm=algorithm,
-                          random=random)
+                          algorithm=algorithm)
     #  if n_jobs == 1:
     #  logger.info("Starting in serial mode")
     #  else:
@@ -84,7 +82,6 @@ def exhaustive_feature_selection(data,
                                  labels,
                                  algorithm,
                                  n_jobs=1,
-                                 random=0,
                                  show_progress=False):
     def initializer():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -102,8 +99,7 @@ def exhaustive_feature_selection(data,
     with mp.Pool(n_jobs, initializer=initializer) as pool:
         g = functools.partial(execute_model,
                               labels=labels,
-                              algorithm=algorithm,
-                              random=random)
+                              algorithm=algorithm)
         results = pool.imap_unordered(g, columns_set, chunksize=(300))
 
         if show_progress:

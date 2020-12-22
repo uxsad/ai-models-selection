@@ -52,7 +52,6 @@ def main(*args):
         (train_data, test_data), (train_labels, test_labels),
         model.AVAILABLE_MODELS[args.model],
         show_progress=args.progress,
-        random=args.random,
         n_jobs=args.jobs)
     logger.info("Exhaustive feature selection completed. Took %.2f seconds",
                 duration)
