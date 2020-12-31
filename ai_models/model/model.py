@@ -35,7 +35,7 @@ def execute_model(data, labels, algorithm):
     return output["output_model"], \
             accuracy(data[1], labels[1], output["output_model"], algorithm), \
             end_time - start_time, \
-            list(data[0].columns.values)
+            list(data[0].columns.values) if hasattr(data[0], 'columns') else None
 
 
 def accuracy(test_data, test_labels, model, algorithm):

@@ -58,5 +58,12 @@ def cli(args):
                         type=str,
                         default=list(AVAILABLE_MODELS.keys())[0],
                         choices=AVAILABLE_MODELS.keys())
+    parser.add_argument('--preprocess',
+                        '-p',
+                        help="Preprocessing strategy",
+                        type=str,
+                        nargs='+',
+                        default='sfs',
+                        choices=['sfs', 'pca'])
 
     return parser.parse_args()

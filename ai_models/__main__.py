@@ -47,14 +47,23 @@ def main(*args):
                 test_data.shape)
 
     res = {}
-    logger.info("Starting forward feature selection")
-    res['feature_selection'], duration = model.forward_feature_selection(
-        (train_data, test_data), (train_labels, test_labels),
-        model.AVAILABLE_MODELS[args.model],
-        show_progress=args.progress,
-        n_jobs=args.jobs)
-    logger.info("Exhaustive feature selection completed. Took %.2f seconds",
-                duration)
+    if "sfs" in args.preprocess:
+        logger.info("Starting forward feature selection")
+        res['feature_selection'], duration = model.forward_feature_selection(
+            (train_data, test_data), (train_labels, test_labels),
+            model.AVAILABLE_MODELS[args.model],
+            show_progress=args.progress,
+            n_jobs=args.jobs)
+        logger.info("Forwars feature selection completed. Took %.2f seconds",
+                    duration)
+    if "pca" in args.preprocess:
+        logger.info("Starting PCA")
+        res['pca'], duration = model.pca(
+            (train_data, test_data), (train_labels, test_labels),
+            model.AVAILABLE_MODELS[args.model],
+            show_progress=args.progress,
+            n_jobs=args.jobs)
+        logger.info("PCA completed. Took %.2f seconds", duration)
     print(yaml.dump(res))
 
 
