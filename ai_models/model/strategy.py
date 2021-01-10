@@ -157,9 +157,11 @@ def pca(data, labels, algorithm, n_jobs=1, show_progress=False):
             results = map(g, pca_datasets)
         else:
             with mp.Pool(n_jobs, initializer=initializer) as pool:
-                results = pool.imap(g, pca_datasets, chunksize=(300))
+                results = pool.imap_unordered(g, pca_datasets, chunksize=int(len(pca_datasets) / n_jobs))
+        if show_progress:
+            results = tqdm.tqdm(results, desc="Training", leave=False, total=len(pca_datasets))
         try:
-            for model, acc, training_time, _ in results:
+            for model, acc, training_time, n_cols in results:
                 pickled = codecs.encode(pickle.dumps(model, protocol=4),
                                         "base64").decode()
                 # The following returns the saved model from a base64 string
@@ -171,22 +173,11 @@ def pca(data, labels, algorithm, n_jobs=1, show_progress=False):
                         'absolute': f'{acc[0]}/{len(labels[1])}',
                         'relative': acc[1]
                     },
+                    'components': n_cols,
                     'time': training_time  # in seconds
                 })
         except KeyboardInterrupt:
             logger.warning("Received SIGINT! Stopping early")
-            pickled = codecs.encode(pickle.dumps(model, protocol=4),
-                                    "base64").decode()
-            feature_set = [data[0].columns.get_loc(col) for col in cols]
-            res.append({
-                'model': pickled,
-                'columns': cols,
-                'accuracy': {
-                    'absolute': f'{acc[0]}/{len(labels[1])}',
-                    'relative': acc[1]
-                },
-                'time': training_time  # in seconds
-            })
     except KeyboardInterrupt:
         logger.warning("Received SIGINT! Stopping early")
     end_time = time.time()
