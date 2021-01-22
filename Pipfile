@@ -16,6 +16,7 @@ mlpack = "*"
 pyyaml = "*"
 coloredlogs = "*"
 tqdm = "*"
+click = "*"
 
 [requires]
 python_version = "3.6"
