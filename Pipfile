@@ -6,17 +6,19 @@ verify_ssl = true
 [dev-packages]
 pylama = "*"
 yapf = "*"
+jupyterlab = "*"
 
 [packages]
-# jupyterlab = "*"
 numpy = "*"
 scipy = "*"
-pandas = ">=1.0"
-mlpack = "*"
+pandas = "*"
+# mlpack = "*"
 pyyaml = "*"
 coloredlogs = "*"
 tqdm = "*"
 click = "*"
+scikit-learn = "*"
+mlxtend = "*"
 
 [requires]
 python_version = "3.6"

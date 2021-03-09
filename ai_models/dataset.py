@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pandas as pd
 import pathlib
 import numpy as np
@@ -23,8 +25,9 @@ KEYS_TO_IGNORE = {
 }
 
 
-def load(path, emotion, width=None, location=None):
+def load(path: pathlib.Path, emotion: str, width: int = None, location: str = None) -> Tuple[pd.DataFrame, pd.Series]:
     """Load the dataset."""
+
     def can_take_column(col: str) -> bool:
         if col in KEYS_TO_IGNORE:
             return False
@@ -49,7 +52,7 @@ def load(path, emotion, width=None, location=None):
                         dtype={
                             'age': np.float32,
                             'internet': np.float32,
-                            'gender': pd.StringDtype()
+                            'gender': str,
                         })
     users['gender'] = pd.Categorical(users['gender'],
                                      categories={'m', 'f', 'a'})
@@ -58,7 +61,7 @@ def load(path, emotion, width=None, location=None):
     websites = pd.read_csv(path / 'websites.csv',
                            dtype={
                                'count': np.float32,
-                               'category': pd.StringDtype()
+                               'category': str
                            })
     websites['category'] = pd.Categorical(websites['category'])
     websites['url'] = pd.Categorical(websites['url'])

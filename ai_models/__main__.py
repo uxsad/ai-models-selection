@@ -1,7 +1,6 @@
 import pickle
 import coloredlogs
 import logging
-import mlpack
 import ai_models.cli as cli
 import ai_models.dataset as dataset
 import ai_models.model as model
@@ -36,15 +35,11 @@ def main(*args):
 
     if os.getenv('UXSAD_ENV') == 'test':
         logger.warning("Started in test mode")
-        data = data.iloc[:,0:3]
+        data = data.iloc[0:300,:]
 
-    logger.info(
-        "Splitting the dataset into train and test set (test ratio: %.2f%%)",
-        100 * 0.3)
-    train_data, train_labels, test_data, test_labels = \
-        model.preprocess.split_dataset(data, labels)
-    logger.info("Done. Train size: %s, Test size: %s", train_data.shape,
-                test_data.shape)
+    logger.info("Splitting the dataset into train and test set (test ratio: %.2f%%)", 100 * 0.3)
+    train_data, train_labels, test_data, test_labels = model.preprocess.split_dataset(data, labels, frac=0.7)
+    logger.info("Done. Train size: %s, Test size: %s", train_data.shape, test_data.shape)
 
     res = {}
     if "sfs" in args.preprocess:
@@ -54,7 +49,7 @@ def main(*args):
             model.AVAILABLE_MODELS[args.model],
             show_progress=args.progress,
             n_jobs=args.jobs)
-        logger.info("Forwars feature selection completed. Took %.2f seconds",
+        logger.info("Forward feature selection completed. Took %.2f seconds",
                     duration)
     if "pca" in args.preprocess:
         logger.info("Starting PCA")
@@ -64,6 +59,8 @@ def main(*args):
             show_progress=args.progress,
             n_jobs=args.jobs)
         logger.info("PCA completed. Took %.2f seconds", duration)
+    print(res)
+    print("==YAML==")
     print(yaml.dump(res))
 
 
