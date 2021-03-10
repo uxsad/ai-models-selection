@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import tqdm
 import codecs
@@ -30,18 +30,21 @@ AVAILABLE_MODELS = {
 CV_FOLD = 10
 
 
-def execute_model(data: pd.DataFrame, labels: pd.Series, algorithm: sk.base.BaseEstimator) -> Dict[str, Any]:
+def execute_model(data: pd.DataFrame, labels: pd.Series, algorithm: sk.base.BaseEstimator) -> Dict[str, List[float]]:
     start_time = time.time()
 
-    output = sk.model_selection.cross_validate(algorithm, data[0], labels[0], cv=CV_FOLD, return_estimator=True)
+    output = sk.model_selection.cross_validate(algorithm, data[0], labels[0], cv=CV_FOLD)
     logger.debug("Completed cross validation")
 
     end_time = time.time()
 
-    return output#\
-           #accuracy(data[1], labels[1], output["output_model"], algorithm), \
-           #end_time - start_time, \
-           #list(data[0].columns.values) if hasattr(data[0], 'columns') else data[0].shape[1]
+    # Convert all numpy's arras to Python's lists for better compatibility with other libraries (ie. YAML)
+    for key in output:
+        output[key] = output[key].tolist()
+    return output  # \
+    # accuracy(data[1], labels[1], output["output_model"], algorithm), \
+    # end_time - start_time, \
+    # list(data[0].columns.values) if hasattr(data[0], 'columns') else data[0].shape[1]
 
 
 def accuracy(test_data, test_labels, model, algorithm):

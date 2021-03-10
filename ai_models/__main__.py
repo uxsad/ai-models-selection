@@ -59,8 +59,6 @@ def main(*args):
             show_progress=args.progress,
             n_jobs=args.jobs)
         logger.info("PCA completed. Took %.2f seconds", duration)
-    print(res)
-    print("==YAML==")
     print(yaml.dump(res))
 
 
