@@ -37,10 +37,17 @@ def forward_feature_selection(data,
         # feature_set = [data[0].columns.get_loc(col) for col in cols]
         res = {
             # 'model': pickled,
-            'columns': out.k_feature_names_,
-            'score': out.k_score_,
+            'columns': list(out.k_feature_names_),
+            'score': float(out.k_score_),
             'all': out.subsets_
         }
+        # Convert all numpy's types to Python's ones for better compatibility with other libraries (ie. YAML)
+        for key in res['all']:
+            res['all'][key]['cv_scores'] = res['all'][key]['cv_scores'].tolist()
+            #res['all'][key]['feature_idx'] = list(res['all'][key]['feature_idx'])
+            del res['all'][key]['feature_idx']
+            res['all'][key]['feature_names'] = list(res['all'][key]['feature_names'])
+            res['all'][key]['avg_score'] = float(res['all'][key]['avg_score'])
     except KeyboardInterrupt:
         logger.warning("Received SIGINT! Stopping early")
     end_time = time.time()
