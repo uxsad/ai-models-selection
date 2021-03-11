@@ -88,5 +88,6 @@ def pca(data, labels, algorithm, n_jobs=1, show_progress=False):
     pca_output = (get_pca.transform(data[0]), get_pca.transform(data[1]))
     start_time = time.time()
     res = execute_model(pca_output, labels, algorithm)
+    res["n_components"] = int(get_pca.n_components_)
     end_time = time.time()
     return res, end_time - start_time
