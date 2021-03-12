@@ -3,7 +3,6 @@ import coloredlogs
 import logging
 import ai_models.dataset as dataset
 import ai_models.model as model
-import ai_models.model.preprocess
 import numpy as np
 import os
 import yaml
@@ -59,8 +58,7 @@ def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Seri
     test_algorithm_copy = sk.base.clone(algorithm)
     start_time = time.time()
     test_algorithm_copy.fit(data[0], labels[0])
-    output["final"] = sk.metrics.classification_report(labels[1], test_algorithm_copy.predict(data[1]),
-                                                       output_dict=True)
+    output["final"] = sk.metrics.classification_report(labels[1], test_algorithm_copy.predict(data[1]), output_dict=True)
     logger.debug("Completed final test")
     final_test = time.time() - start_time
     output["final"]["time"] = final_test
@@ -120,13 +118,9 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
         logger.warning("Started in test mode")
         data = data.iloc[0:300, :]
 
-    logger.info(
-        "Splitting the dataset into train and test set (test ratio: %.2f%%)",
-        100 * 0.3)
-    train_data, train_labels, test_data, test_labels = model.preprocess.split_dataset(
-        data, labels, frac=0.7)
-    logger.info("Done. Train size: %s, Test size: %s", train_data.shape,
-                test_data.shape)
+    logger.info("Splitting the dataset into train and test set (test ratio: %.2f%%)", 100 * 0.3)
+    train_data, test_data, train_labels, test_labels = sk.model_selection.train_test_split(data, labels, train_size=0.7, random_state=random)
+    logger.info("Done. Train size: %s, Test size: %s", train_data.shape, test_data.shape)
 
     res = {}
     if "sfs" in strategy:
@@ -142,7 +136,7 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
         logger.info("Starting PCA")
         res['pca'], duration = model.pca(
             (train_data, test_data), (train_labels, test_labels),
-            model.AVAILABLE_MODELS[algorithm],
+            AVAILABLE_MODELS[algorithm],
             show_progress=progress,
             n_jobs=jobs)
         logger.info("PCA completed. Took %.2f seconds", duration)
