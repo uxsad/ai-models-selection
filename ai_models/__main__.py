@@ -9,10 +9,63 @@ import os
 import yaml
 import click
 import pathlib
-from ai_models.model import AVAILABLE_MODELS
+import itertools
+from typing import Dict, Any, List, Union, Tuple
+
+import tqdm
+import codecs
+import functools
+import json
+import multiprocessing as mp
+import pickle
+import time
+import logging
+
+import sklearn as sk
+from sklearn import ensemble, neural_network, svm, tree
+import numpy as np
+import yaml
+import pandas as pd
+import signal
 from ai_models.dataset import KEYS_TO_PREDICT
 
 logger = logging.getLogger("ai_models")
+
+AVAILABLE_MODELS = {
+    "forest": sk.ensemble.RandomForestClassifier(),
+    "svm": sk.svm.SVC(),
+    "adaboost": sk.ensemble.AdaBoostClassifier(),
+    "tree": sk.tree.DecisionTreeClassifier(),
+    "perceptron": sk.neural_network.MLPClassifier(),
+}
+
+CV_FOLD = 10
+
+
+def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series, pd.Series],
+                  algorithm: sk.base.ClassifierMixin) \
+        -> Dict[str, Union[float, Dict[str, List[float]]]]:
+    output = {}
+    cv_algorithm_copy = sk.base.clone(algorithm)
+    start_time = time.time()
+    output["cross_val"] = sk.model_selection.cross_validate(cv_algorithm_copy, data[0], labels[0], cv=CV_FOLD)
+    logger.debug("Completed cross validation")
+    cv_time = time.time() - start_time
+    # Convert all numpy's arras to Python's lists for better compatibility with other libraries (ie. YAML)
+    for key in output["cross_val"]:
+        output[key] = output[key].tolist()
+    output["cross_val"]["time"] = cv_time
+
+    test_algorithm_copy = sk.base.clone(algorithm)
+    start_time = time.time()
+    test_algorithm_copy.fit(data[0], labels[0])
+    output["final"] = sk.metrics.classification_report(labels[1], test_algorithm_copy.predict(data[1]),
+                                                       output_dict=True)
+    logger.debug("Completed final test")
+    final_test = time.time() - start_time
+    output["final"]["time"] = final_test
+
+    return output
 
 
 @click.command()
@@ -80,7 +133,7 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
         logger.info("Starting forward feature selection")
         res['feature_selection'], duration = model.forward_feature_selection(
             (train_data, test_data), (train_labels, test_labels),
-            model.AVAILABLE_MODELS[algorithm],
+            AVAILABLE_MODELS[algorithm],
             show_progress=progress,
             n_jobs=jobs)
         logger.info("Forward feature selection completed. Took %.2f seconds",

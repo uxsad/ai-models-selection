@@ -14,7 +14,7 @@ from mlxtend import feature_selection
 import numpy as np
 import yaml
 import signal
-from .model import execute_model
+from ..__main__ import execute_model
 
 logger = logging.getLogger(__name__)
 
