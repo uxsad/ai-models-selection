@@ -1,50 +1,20 @@
-import itertools
-import tqdm
 import codecs
-import functools
-from typing import Tuple
-
-import pandas as pd
-import pathlib
-import numpy as np
-import json
-import multiprocessing as mp
-import pickle
-import time
 import logging
-
-import sklearn as sk
-import mlxtend as mlx
-from mlxtend import feature_selection
-import numpy as np
-import yaml
-import signal
-import pickle
-import coloredlogs
-import logging
-import numpy as np
 import os
-import yaml
-import click
 import pathlib
-import itertools
-from typing import Dict, Any, List, Union, Tuple
-
-import tqdm
-import codecs
-import functools
-import json
-import multiprocessing as mp
 import pickle
 import time
-import logging
+from typing import Dict, List, Union, Tuple
 
-import sklearn as sk
-from sklearn import ensemble, neural_network, svm, tree
+import click
+import coloredlogs
+import mlxtend as mlx
 import numpy as np
-import yaml
 import pandas as pd
-import signal
+import sklearn as sk
+import yaml
+from mlxtend import feature_selection
+from sklearn import ensemble, svm, tree
 
 logger = logging.getLogger("ai_models")
 
@@ -126,7 +96,7 @@ def load(path: pathlib.Path, emotion: str, width: int = None, location: str = No
         usecols=can_take_column,
         encoding='utf-8',
         index_col="middle.id",
-        )
+    )
     df['user.age'] = df['middle.user_id'].map(users['age'])
     df['user.internet'] = df['middle.user_id'].map(users['internet'])
     df['user.gender'] = df['middle.user_id'].map(users['gender'])
@@ -160,7 +130,7 @@ def load(path: pathlib.Path, emotion: str, width: int = None, location: str = No
 
 
 def test_report(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series, pd.Series],
-                  algorithm: sk.base.ClassifierMixin) \
+                algorithm: sk.base.ClassifierMixin) \
         -> Dict[str, Union[float, Dict[str, List[float]]]]:
     output = {}
     test_algorithm_copy = sk.base.clone(algorithm)
@@ -171,7 +141,7 @@ def test_report(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series
     final_test = time.time() - start_time
     output["time"] = final_test
     pickled = codecs.encode(pickle.dumps(test_algorithm_copy, protocol=4), "base64").decode()
-    output['model']= pickled
+    output['model'] = pickled
 
     return output
 
@@ -190,9 +160,10 @@ def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Seri
         output[key] = output[key].tolist()
     output["cross_val"]["time"] = cv_time
 
-    output['final']  =test_report(data,labels,algorithm)
+    output['final'] = test_report(data, labels, algorithm)
 
     return output
+
 
 def forward_feature_selection(data,
                               labels,
@@ -220,7 +191,7 @@ def forward_feature_selection(data,
     # Convert all numpy's types to Python's ones for better compatibility with other libraries (ie. YAML)
     for key in res['all']:
         res['all'][key]['cv_scores'] = res['all'][key]['cv_scores'].tolist()
-        #res['all'][key]['feature_idx'] = list(res['all'][key]['feature_idx'])
+        # res['all'][key]['feature_idx'] = list(res['all'][key]['feature_idx'])
         del res['all'][key]['feature_idx']
         res['all'][key]['feature_names'] = list(res['all'][key]['feature_names'])
         res['all'][key]['avg_score'] = float(res['all'][key]['avg_score'])
@@ -264,7 +235,6 @@ def pca(data, labels, algorithm, n_jobs=1, show_progress=False):
     res["n_components"] = int(get_pca.n_components_)
     end_time = time.time()
     return res, end_time - start_time
-
 
 
 @click.command()
@@ -317,7 +287,8 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
         data = data.iloc[0:300, :]
 
     logger.info("Splitting the dataset into train and test set (test ratio: %.2f%%)", 100 * 0.3)
-    train_data, test_data, train_labels, test_labels = sk.model_selection.train_test_split(data, labels, train_size=0.7, random_state=random)
+    train_data, test_data, train_labels, test_labels = sk.model_selection.train_test_split(data, labels, train_size=0.7,
+                                                                                           random_state=random)
     logger.info("Done. Train size: %s, Test size: %s", train_data.shape, test_data.shape)
 
     res = {}
