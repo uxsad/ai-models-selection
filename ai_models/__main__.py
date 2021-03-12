@@ -1,8 +1,23 @@
+import itertools
+import tqdm
+import codecs
+import functools
+import json
+import multiprocessing as mp
+import pickle
+import time
+import logging
+
+import sklearn as sk
+import mlxtend as mlx
+from mlxtend import feature_selection
+import numpy as np
+import yaml
+import signal
 import pickle
 import coloredlogs
 import logging
 import ai_models.dataset as dataset
-import ai_models.model as model
 import numpy as np
 import os
 import yaml
@@ -41,6 +56,23 @@ AVAILABLE_MODELS = {
 CV_FOLD = 10
 
 
+def test_report(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series, pd.Series],
+                  algorithm: sk.base.ClassifierMixin) \
+        -> Dict[str, Union[float, Dict[str, List[float]]]]:
+    output = {}
+    test_algorithm_copy = sk.base.clone(algorithm)
+    start_time = time.time()
+    test_algorithm_copy.fit(data[0], labels[0])
+    output = sk.metrics.classification_report(labels[1], test_algorithm_copy.predict(data[1]), output_dict=True)
+    logger.debug("Completed final test")
+    final_test = time.time() - start_time
+    output["time"] = final_test
+    pickled = codecs.encode(pickle.dumps(test_algorithm_copy, protocol=4), "base64").decode()
+    output['model']= pickled
+
+    return output
+
+
 def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series, pd.Series],
                   algorithm: sk.base.ClassifierMixin) \
         -> Dict[str, Union[float, Dict[str, List[float]]]]:
@@ -55,15 +87,81 @@ def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Seri
         output[key] = output[key].tolist()
     output["cross_val"]["time"] = cv_time
 
-    test_algorithm_copy = sk.base.clone(algorithm)
-    start_time = time.time()
-    test_algorithm_copy.fit(data[0], labels[0])
-    output["final"] = sk.metrics.classification_report(labels[1], test_algorithm_copy.predict(data[1]), output_dict=True)
-    logger.debug("Completed final test")
-    final_test = time.time() - start_time
-    output["final"]["time"] = final_test
+    output['final']  =test_report(data,labels,algorithm)
 
     return output
+
+def forward_feature_selection(data,
+                              labels,
+                              algorithm,
+                              n_jobs=1,
+                              show_progress=False):
+    start_time = time.time()
+    res = {}
+    sfs = mlx.feature_selection.SequentialFeatureSelector(algorithm,
+                                                          k_features="best",
+                                                          cv=10,
+                                                          n_jobs=n_jobs,
+                                                          verbose=2, scoring='accuracy')
+    out = sfs.fit(data[0], labels[0])
+    logger.debug("Completed SFFS")
+
+    output = test_report(data, labels, algorithm)
+
+    res = {
+        'final': output,
+        'columns': list(out.k_feature_names_),
+        'score': float(out.k_score_),
+        'all': out.subsets_
+    }
+    # Convert all numpy's types to Python's ones for better compatibility with other libraries (ie. YAML)
+    for key in res['all']:
+        res['all'][key]['cv_scores'] = res['all'][key]['cv_scores'].tolist()
+        #res['all'][key]['feature_idx'] = list(res['all'][key]['feature_idx'])
+        del res['all'][key]['feature_idx']
+        res['all'][key]['feature_names'] = list(res['all'][key]['feature_names'])
+        res['all'][key]['avg_score'] = float(res['all'][key]['avg_score'])
+    end_time = time.time()
+    return res, end_time - start_time
+
+
+def exhaustive_feature_selection(data,
+                                 labels,
+                                 algorithm,
+                                 n_jobs=1,
+                                 show_progress=False):
+    start_time = time.time()
+    res = {}
+    sfs = mlx.feature_selection.ExhaustiveFeatureSelector(algorithm,
+                                                          cv=10,
+                                                          n_jobs=n_jobs,
+                                                          scoring='accuracy')
+    out = sfs.fit(data[0], labels[0])
+    logger.debug("Completed EFS")
+
+    output = test_report(data, labels, algorithm)
+
+    res = {
+        'final': output,
+        'columns': out.best_feature_names_,
+        'score': out.best_score_,
+        'all': out.subsets_
+    }
+    end_time = time.time()
+    return res, end_time - start_time
+
+
+def pca(data, labels, algorithm, n_jobs=1, show_progress=False):
+    # Uses Minka's MLE - Thomas P. Minka, "Automatic choice of dimensionality for PCA", NIPS 2000
+    get_pca = sk.decomposition.PCA(n_components='mle')
+    get_pca.fit(data[0])
+    pca_output = (get_pca.transform(data[0]), get_pca.transform(data[1]))
+    start_time = time.time()
+    res = execute_model(pca_output, labels, algorithm)
+    res["n_components"] = int(get_pca.n_components_)
+    end_time = time.time()
+    return res, end_time - start_time
+
 
 
 @click.command()
@@ -92,7 +190,7 @@ def execute_model(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Seri
               default=[list(AVAILABLE_MODELS.keys())[0]], help='The algorithm',
               multiple=True)
 @click.option('--strategy', '-s',
-              type=click.Choice(['sfs', 'pca'], case_sensitive=False),
+              type=click.Choice(['sfs', 'pca', 'efs'], case_sensitive=False),
               default=['sfs'], help='The strategy to apply', multiple=True)
 def main(dataset, emotion, width, location, random, out, verbose, progress,
          jobs, algorithm, strategy):
@@ -125,7 +223,16 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
     res = {}
     if "sfs" in strategy:
         logger.info("Starting forward feature selection")
-        res['feature_selection'], duration = model.forward_feature_selection(
+        res['feature_selection'], duration = forward_feature_selection(
+            (train_data, test_data), (train_labels, test_labels),
+            AVAILABLE_MODELS[algorithm],
+            show_progress=progress,
+            n_jobs=jobs)
+        logger.info("Forward feature selection completed. Took %.2f seconds",
+                    duration)
+    if "efs" in strategy:
+        logger.info("Starting exhaustive feature selection")
+        res['exhaustive_feature_selection'], duration = exhaustive_feature_selection(
             (train_data, test_data), (train_labels, test_labels),
             AVAILABLE_MODELS[algorithm],
             show_progress=progress,
@@ -134,7 +241,7 @@ def main(dataset, emotion, width, location, random, out, verbose, progress,
                     duration)
     if "pca" in strategy:
         logger.info("Starting PCA")
-        res['pca'], duration = model.pca(
+        res['pca'], duration = pca(
             (train_data, test_data), (train_labels, test_labels),
             AVAILABLE_MODELS[algorithm],
             show_progress=progress,
