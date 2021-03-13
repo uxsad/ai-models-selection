@@ -1,4 +1,4 @@
-import codecs
+import base64
 import logging
 import os
 import pathlib
@@ -139,7 +139,7 @@ def test_report(data: Tuple[pd.DataFrame, pd.DataFrame], labels: Tuple[pd.Series
     logger.debug("Completed final test")
     final_test = time.time() - start_time
     output["time"] = final_test
-    pickled = codecs.encode(pickle.dumps(test_algorithm_copy, protocol=4), "base64").decode()
+    pickled = base64.b64encode(pickle.dumps(test_algorithm_copy, protocol=4)).decode()
     output['model'] = pickled
 
     return output
