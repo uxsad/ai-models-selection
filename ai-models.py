@@ -221,6 +221,8 @@ def pca(data, labels, algorithm):
 
 
 @click.command()
+@click.help_option('-h', '--help')
+@click.version_option("2.0.0", '-v', '--version')
 @click.argument('dataset', type=click.Path(exists=True, dir_okay=True, file_okay=False))
 @click.argument('emotion',
                 type=click.Choice([e.split('.')[2] for e in KEYS_TO_PREDICT],
