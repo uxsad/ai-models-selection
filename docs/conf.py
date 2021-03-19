@@ -11,6 +11,8 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import yaml
+from urllib.request import urlopen
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -31,6 +33,7 @@ version = 'latest'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    "sphinx.ext.intersphinx",
     'sphinx_rtd_theme'
 ]
 
@@ -71,3 +74,33 @@ html_theme_options = {
     #     'includehidden': True,
     #     'titles_only': False
 }
+
+# Subproject's links
+rtd_version = os.environ.get("READTHEDOCS_VERSION", "latest")
+intersphinx_mapping = {
+    "emotion-analysis": (
+        "https://uxsad.readthedocs.io/projects/emotion-analysis/en/%s/" % rtd_version,
+        None,
+    ),
+    "ai-models": (
+        "https://uxsad.readthedocs.io/projects/ai-models/en/%s/" % rtd_version,
+        None,
+    ),
+}
+
+PROJECT_SLUG = "ai-models"
+d = yaml.safe_load(urlopen("https://raw.githubusercontent.com/uxsad/docs/master/sidebar.yml"))
+with open(".sidebar.rst", "w") as f:
+    for proj in d["projects"]:
+        if proj not in d["toctrees"]:
+            continue
+        print(".. toctree::", file=f)
+        print("   :maxdepth: 2", file=f)
+        print("   :caption: {}".format(d["toctrees"][proj]["name"]), file=f)
+        print(file=f)
+        for item in d["toctrees"][proj]["items"]:
+            if proj == PROJECT_SLUG:
+                args = (item['title'], item['link'])
+            else:
+                args = (item['title'], d["projects"][proj] + '/en/' + rtd_version + '/' + item['link'] + ".html")
+            print("   {} <{}>".format(*args), file=f)

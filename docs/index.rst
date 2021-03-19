@@ -6,12 +6,7 @@
 Welcome to AI Models Tools's documentation!
 ===========================================
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Contents:
-
-   ai-models-man
-
+.. include:: .sidebar.rst
 
 
 Indices and tables
