@@ -112,8 +112,13 @@ def merge(dataset, steps, output):
 
 def get_value(data: pd.DataFrame, to_take: int, emotion: str, i: int,
               random: int = None):
+    logging.info("Taking the rows of the dataset having '%s' to %d",
+                 emotion, i)
     df = data.loc[data[emotion] == i]
+    logging.info("Taken %d rows, over an accepted maximum of %d",
+                 df.shape[0], to_take)
     n = to_take if to_take < df.shape[0] else df.shape[0]
+    logging.info("Selecting %d random rows", n)
     return df.sample(n=n, random_state=random)
 
 
@@ -126,8 +131,13 @@ def get_value(data: pd.DataFrame, to_take: int, emotion: str, i: int,
 @click.option("-r", "--random", type=click.INT)
 @click.option("-j", "--jobs", type=click.IntRange(1, None))
 def stratify(dataset, size, classes, output, random=None, jobs=1):
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Starting the stratification")
     df = pd.read_csv(dataset, engine='c')
+    logging.info("Loading the dataset: DONE")
     elements_by_class = math.ceil((df.shape[0] * size) / classes)
+    logging.info("Taking %d elements by class, i.e. ceil(%d * %.3f / %d)",
+                 elements_by_class, df.shape[0], size, classes)
     out_path = pathlib.Path(output) / f'aggregate-{size}/'
     out_path.mkdir(parents=True, exist_ok=True)
     for emotion in KEYS_TO_PREDICT:
@@ -142,11 +152,14 @@ def stratify(dataset, size, classes, output, random=None, jobs=1):
             # with mp.Pool(processes=jobs) as pool:
             #     final = pool.map(func, range(classes))
         df = pd.concat(final)
+        logging.info("Saving %d rows for '%s'",
+                     df.shape[0], emotion.split('.')[2])
         df.to_csv(
             out_path / f"{emotion.split('.')[2]}.csv",
             encoding='utf-8',
             index=False
         )
+        logging.info("-" * 80)
 
 
 if __name__ == '__main__':
