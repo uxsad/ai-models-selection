@@ -42,74 +42,6 @@ KEYS_TO_PREDICT = {
 logger = logging.getLogger(__name__)
 gc.enable()
 
-
-@click.group()
-def main():
-    pass
-
-
-def get_step(val, steps, minimum=0, maximum=100):
-    if not val:
-        return 0
-    val = float(val)
-    step_width = (maximum - minimum) / steps
-    for i in range(steps):
-        if minimum + step_width * i <= val < minimum + step_width * (i + 1):
-            return i
-    if val >= maximum:
-        return steps - 1
-    return None
-
-
-@main.command()
-@click.argument("dataset",
-                type=click.Path(file_okay=False, dir_okay=True, exists=True))
-@click.argument("steps", type=int)
-@click.option("-o", "--output", type=click.File('w'))
-def merge(dataset, steps, output):
-    dataset = pathlib.Path(dataset)
-    if not (dataset / 'users.csv').exists():
-        raise FileNotFoundError("The base path does not contain the"
-                                " 'users.csv' file, that contains the"
-                                " users' data")
-    if not (dataset / 'websites.csv').exists():
-        raise FileNotFoundError("The base path does not contain the"
-                                " 'websites.csv' file, that contains the"
-                                " websites' data")
-    # Load the users' ids
-    users = pd.read_csv(
-        dataset / 'users.csv',
-        index_col='id',
-        usecols=['id'],
-        engine='c'
-    ).index
-
-    def process_row(row):
-        row['middle.emotions.valence'] = get_step(
-            row['middle.emotions.valence'], steps, minimum=-100, maximum=100)
-        for k in KEYS_TO_PREDICT - {'middle.emotions.valence'}:
-            row[k] = get_step(row[k], steps)
-        return row
-
-    def get_user_interactions(path):
-        if not path.exists():
-            return []
-        with open(path, "r") as dataset:
-            csv_file = csv.DictReader(dataset)
-            for row in csv_file:
-                yield process_row(row)
-
-    users_path = [dataset / user_id / 'aggregate.csv' for user_id in users]
-    users_data = (get_user_interactions(path) for path in users_path)
-    with open(users_path[1], 'r') as f:
-        csv_file = csv.DictReader(f)
-        writer = csv.DictWriter(output, next(csv_file).keys())
-        writer.writeheader()
-    for data in tqdm.tqdm(users_data, total=len(users_path), leave=False):
-        for line in data:
-            writer.writerow(line)
-
-
 def get_value(data: pd.DataFrame, to_take: int, emotion: str, i: int,
               random: int = None):
     logging.info("Taking the rows of the dataset having '%s' to %d",
@@ -122,7 +54,7 @@ def get_value(data: pd.DataFrame, to_take: int, emotion: str, i: int,
     return df.sample(n=n, random_state=random)
 
 
-@main.command()
+@click.command()
 @click.argument("dataset",
                 type=click.Path(file_okay=True, dir_okay=False, exists=True))
 @click.argument("size", type=click.FloatRange(0, 1))
@@ -163,4 +95,4 @@ def stratify(dataset, size, classes, output, random=None, jobs=1):
 
 
 if __name__ == '__main__':
-    main()
+    stratify()
